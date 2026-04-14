@@ -13,7 +13,6 @@ export const connectMember = asyncHandler(
       identifierValue,
     } = req.body;
 
-    // ✅ Validation
     if (!identifierValue || !identifierType) {
       throw new ApiError(400, "Identifier required");
     }
@@ -22,7 +21,6 @@ export const connectMember = asyncHandler(
       throw new ApiError(400, "Shop or customer missing");
     }
 
-    // Step 1: Find or create customer in GUPER
     const guperCustomer = await findOrCreateGuperCustomer({
       identifierType,
       identifierValue,
@@ -32,7 +30,6 @@ export const connectMember = asyncHandler(
       throw new ApiError(500, "Failed to create/find GUPER customer");
     }
 
-    // Step 2: Save mapping
     await saveCustomerMapping({
       shop,
       shopifyCustomerId,

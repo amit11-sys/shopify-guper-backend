@@ -13,14 +13,13 @@ export const findOrCreateGuperCustomer = async ({
   identifierValue: string;
 }): Promise<GuperCustomerResponse> => {
   const baseURL = process.env.GUPER_BASE_URL;
-  const apiKey = process.env.GUPER_API_KEY;
-
+  const apiKey = process.env.GUPER_API_KEY;  
   if (!baseURL || !apiKey) {
     throw new ApiError(500, "Guper configuration missing");
   }
 
   try {
-    // STEP 1: Try to find customer
+
     const findRes = await axios.post(
       `${baseURL}/find-customer`,
       {
@@ -37,7 +36,6 @@ export const findOrCreateGuperCustomer = async ({
       return findRes.data;
     }
 
-    // STEP 2: Create if not found
     const createRes = await axios.post(
       `${baseURL}/create-customer`,
       {
