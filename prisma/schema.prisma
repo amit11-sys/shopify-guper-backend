@@ -1,0 +1,75 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model MerchantCredential {
+  id             Int       @id @default(autoincrement())
+  shop           String    @unique
+  account        String
+  apiKey         String
+  apiSecret      String
+  accessToken    String?
+  tokenExpiresAt DateTime?
+  isActive       Boolean   @default(true)
+
+  orders         Order[]
+  mappings       CustomerMapping[]
+
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@map("merchant_credentials")
+}
+
+model CustomerMapping {
+  id                Int      @id @default(autoincrement())
+  shop              String
+  shopifyCustomerId String
+  guperCustomerId   Int
+  identifierType    String
+  identifierValue   String
+
+  merchant          MerchantCredential @relation(fields: [shop], references: [shop])
+
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@unique([shop, shopifyCustomerId])
+  @@index([shop])
+  @@index([guperCustomerId])
+  @@map("customer_mappings")
+}
+
+model Order {
+  id                Int         @id @default(autoincrement())
+  shop              String
+  shopifyOrderId    String      @unique
+  guperCustomerId   Int?
+  guperTID          String?
+  confirmToken      String?     @unique    
+  customerEmail     String
+  customerName      String?
+  orderAmount       Int
+  cashbackAmount    Int         @default(0)
+  status            OrderStatus @default(PENDING)
+
+  merchant          MerchantCredential @relation(fields: [shop], references: [shop])
+
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  @@index([shop, status])
+  @@map("orders")
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  FAILED
+  REFUNDED
+}

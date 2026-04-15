@@ -11,23 +11,24 @@ export const connectMember = asyncHandler(
       shopifyCustomerId,
       identifierType,
       identifierValue,
+       customerName,      
+      customerPhone,
     } = req.body;
 
-    if (!identifierValue || !identifierType) {
-      throw new ApiError(400, "Identifier required");
+    if (!shop || !shopifyCustomerId || !identifierType || !identifierValue) {
+      throw new ApiError(400, "All fields required: shop, shopifyCustomerId, identifierType, identifierValue");
     }
 
-    if (!shop || !shopifyCustomerId) {
-      throw new ApiError(400, "Shop or customer missing");
-    }
-
-    const guperCustomer = await findOrCreateGuperCustomer({
+    const guperCustomer = await findOrCreateGuperCustomer(
+      shop,
       identifierType,
       identifierValue,
-    });
+      customerName,     
+      customerPhone,    
+    );
 
     if (!guperCustomer?.id) {
-      throw new ApiError(500, "Failed to create/find GUPER customer");
+      throw new ApiError(500, "Failed to find or create Guper customer");
     }
 
     await saveCustomerMapping({
@@ -40,7 +41,12 @@ export const connectMember = asyncHandler(
 
     return res.json({
       success: true,
-      message: "GUPER account connected",
+      message: "GUPER account connected successfully",
+      data: {
+        guperCustomerId: guperCustomer.id,
+        identifierType,
+        identifierValue,
+      },
     });
   }
 );

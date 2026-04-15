@@ -1,3 +1,4 @@
+import prisma from "../utils/prisma";
 import { ApiError } from "../utils/ApiError";
 
 interface SaveCustomerMappingInput {
@@ -5,12 +6,12 @@ interface SaveCustomerMappingInput {
   shopifyCustomerId: string;
   identifierType: string;
   identifierValue: string;
-  guperCustomerId: string;
+  guperCustomerId: number;       
 }
 
 export const saveCustomerMapping = async (
   data: SaveCustomerMappingInput
-): Promise<boolean> => {
+) => {
   const {
     shop,
     shopifyCustomerId,
@@ -19,7 +20,6 @@ export const saveCustomerMapping = async (
     guperCustomerId,
   } = data;
 
-  // ✅ Basic validation (defensive, even if controller validates)
   if (
     !shop ||
     !shopifyCustomerId ||
@@ -31,22 +31,57 @@ export const saveCustomerMapping = async (
   }
 
   try {
-    // 🚧 TEMP: Replace with DB logic (Prisma / Mongo / SQL)
-    console.log("Saving mapping:", {
+    const mapping = await prisma.customerMapping.upsert({
+      where: {
+        shop_shopifyCustomerId: {
+          shop,
+          shopifyCustomerId,
+        },
+      },
+      update: {
+        guperCustomerId,
+        identifierType,
+        identifierValue,
+      },
+      create: {
+        shop,
+        shopifyCustomerId,
+        guperCustomerId,
+        identifierType,
+        identifierValue,
+      },
+    });
+
+    console.log("✅ Customer mapping saved/updated:", {
       shop,
       shopifyCustomerId,
-      identifierType,
-      identifierValue,
       guperCustomerId,
     });
 
-    // Simulate success
-    return true;
-  } catch (error: any) {
-    // 🔥 Always normalize errors
-    throw new ApiError(
-      500,
-      error.message || "Failed to save customer mapping"
-    );
-  }
+    return mapping;           
+  } catch (error: unknown) {
+  const message = error instanceof Error ? error.message : "Failed to save customer mapping";
+  throw new ApiError(500, message);
+}
+};
+
+export const getCustomerMapping = async (
+  shop: string,
+  shopifyCustomerId: string
+) => {
+  if (!shop || !shopifyCustomerId) return null;
+
+  try {
+    return await prisma.customerMapping.findUnique({
+      where: {
+        shop_shopifyCustomerId: {
+          shop,
+          shopifyCustomerId,
+        },
+      },
+    });
+  } catch (error: unknown) {
+  const message = error instanceof Error ? error.message : "Failed to save customer mapping";
+  throw new ApiError(500, message);
+}
 };
