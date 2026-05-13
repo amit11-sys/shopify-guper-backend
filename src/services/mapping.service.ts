@@ -6,7 +6,10 @@ interface SaveCustomerMappingInput {
   shopifyCustomerId: string;
   identifierType: string;
   identifierValue: string;
-  guperCustomerId: number;       
+  guperCustomerId: number;
+  customerName?: string;     // ⭐ Add
+  customerEmail?: string;    // ⭐ Add
+  customerPhone?: string;    // ⭐ Add
 }
 
 export const saveCustomerMapping = async (
@@ -18,6 +21,9 @@ export const saveCustomerMapping = async (
     identifierType,
     identifierValue,
     guperCustomerId,
+    customerName,     // ⭐ Add
+    customerEmail,    // ⭐ Add
+    customerPhone,    // ⭐ Add
   } = data;
 
   if (
@@ -42,6 +48,9 @@ export const saveCustomerMapping = async (
         guperCustomerId,
         identifierType,
         identifierValue,
+        customerName,     
+        customerEmail,    
+        customerPhone,   
       },
       create: {
         shop,
@@ -49,6 +58,9 @@ export const saveCustomerMapping = async (
         guperCustomerId,
         identifierType,
         identifierValue,
+        customerName,     
+        customerEmail,   
+        customerPhone,    
       },
     });
 
@@ -58,11 +70,11 @@ export const saveCustomerMapping = async (
       guperCustomerId,
     });
 
-    return mapping;           
+    return mapping;
   } catch (error: unknown) {
-  const message = error instanceof Error ? error.message : "Failed to save customer mapping";
-  throw new ApiError(500, message);
-}
+    const message = error instanceof Error ? error.message : "Failed to save customer mapping";
+    throw new ApiError(500, message);
+  }
 };
 
 export const getCustomerMapping = async (
@@ -81,7 +93,14 @@ export const getCustomerMapping = async (
       },
     });
   } catch (error: unknown) {
-  const message = error instanceof Error ? error.message : "Failed to save customer mapping";
-  throw new ApiError(500, message);
-}
+    const message = error instanceof Error ? error.message : "Failed to fetch customer mapping";
+    throw new ApiError(500, message);
+  }
+};
+
+export const getCustomersByShop = async (shop: string) => {
+  return await prisma.customerMapping.findMany({
+    where: { shop },
+    orderBy: { createdAt: "desc" },
+  });
 };

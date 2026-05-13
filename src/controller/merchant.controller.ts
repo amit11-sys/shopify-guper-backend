@@ -1,8 +1,13 @@
 import { Request, Response, NextFunction } from "express";
 import { verifyGuperCredentials } from "../services/guper.service";
-import { saveMerchantCredentials, getMerchantByShop } from "../services/merchant.service";
+import {
+  saveMerchantCredentials,
+  getMerchantByShop,
+} from "../services/merchant.service";
+import { getCustomersByShop } from "../services/mapping.service";
+import prisma from "../utils/prisma";
 
-
+// ─── Verify Credentials ───────────────────────────────
 export const verifyCredentials = async (
   req: Request,
   res: Response,
@@ -11,11 +16,7 @@ export const verifyCredentials = async (
   try {
     const { account, apiKey, apiSecret } = req.body;
 
-    const result = await verifyGuperCredentials(
-      account,
-      apiKey,
-      apiSecret
-    );
+    const result = await verifyGuperCredentials(account, apiKey, apiSecret);
 
     if (!result.success) {
       res.status(401).json({
@@ -34,12 +35,12 @@ export const verifyCredentials = async (
         expiresIn: result.data?.expiresIn,
       },
     });
-  } catch (error) {
+  } catch (error: unknown) {
     next(error);
   }
 };
 
-
+// ─── Save Credentials ─────────────────────────────────
 export const saveCredentials = async (
   req: Request,
   res: Response,
@@ -48,12 +49,7 @@ export const saveCredentials = async (
   try {
     const { shop, account, apiKey, apiSecret } = req.body;
 
-
-    const result = await verifyGuperCredentials(
-      account,
-      apiKey,
-      apiSecret
-    );
+    const result = await verifyGuperCredentials(account, apiKey, apiSecret);
 
     if (!result.success) {
       res.status(401).json({
@@ -63,7 +59,6 @@ export const saveCredentials = async (
       return;
     }
 
-   
     const merchant = await saveMerchantCredentials(
       shop,
       account,
@@ -82,12 +77,12 @@ export const saveCredentials = async (
         isActive: merchant.isActive,
       },
     });
-  } catch (error) {
+  } catch (error: unknown) {
     next(error);
   }
 };
 
-
+// ─── Merchant Status ──────────────────────────────────
 export const getMerchantStatus = async (
   req: Request,
   res: Response,
@@ -115,7 +110,91 @@ export const getMerchantStatus = async (
         createdAt: merchant.createdAt,
       },
     });
-  } catch (error) {
+  } catch (error: unknown) {
+    next(error);
+  }
+};
+
+// ─── Merchant Customers ───────────────────────────────
+export const getMerchantCustomers = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const shop = req.params.shop as string;  // ← as string add
+
+    const customers = await getCustomersByShop(shop);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        shop,
+        totalCustomers: customers.length,
+        customers,
+      },
+    });
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      res.status(500).json({
+        success: false,
+        message: error.message,
+      });
+      return;
+    }
+    next(error);
+  }
+};
+
+// ─── Merchant Stats ───────────────────────────────────
+export const getMerchantStats = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const shop = req.params.shop as string;  // ← as string add
+
+    const totalCustomers = await prisma.customerMapping.count({
+      where: { shop },
+    });
+
+    const totalOrders = await prisma.order.count({
+      where: { shop, status: "CONFIRMED" },
+    });
+
+    const pointsData = await prisma.order.aggregate({
+      where: { shop, status: "CONFIRMED" },
+      _sum: { cashbackAmount: true },
+    });
+
+    const totalRedemptions = await prisma.redemption.count({
+      where: { shop, status: "SUCCESS" },
+    });
+
+    const totalRefunds = await prisma.order.count({
+      where: { shop, status: "REFUNDED" },
+    });
+
+    res.status(200).json({
+      success: true,
+      data: {
+        shop,
+        totalCustomers,
+        totalOrders,
+        totalPointsAwarded: pointsData._sum?.cashbackAmount || 0,  // ← ?. add
+        totalRedemptions,
+        totalRefunds,
+      },
+    });
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      res.status(500).json({
+        success: false,
+        message: error.message,
+      });
+      return;
+    }
     next(error);
   }
 };

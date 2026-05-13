@@ -145,13 +145,13 @@ export const getFreshToken = async (
   };
 };
 
-// ─── Reward By Order ──────────────────────────────────
+
 // ─── Reward By Order ──────────────────────────────────
 export const rewardByOrder = async (
   shop: string,
   client: GuperClient,
   items: GuperItem[]
-): Promise<RewardResult> => {        // ← unknown se RewardResult
+): Promise<RewardResult> => {       
   const { accessToken, account } = await getFreshToken(shop);
 
   try {
@@ -205,7 +205,7 @@ export const confirmOrder = async (
   shop: string,
   confirmToken: string,
   orderId: string
-): Promise<ConfirmResult> => {       // ← unknown se ConfirmResult
+): Promise<ConfirmResult> => {       
   const { accessToken, account } = await getFreshToken(shop);
 
   try {
@@ -264,15 +264,9 @@ export const findOrCreateGuperCustomer = async (
   if (identifierType === "document") {
     payload.document = identifierValue;
   }
-
-  console.log("=== GUPER CUSTOMER DEBUG ===");
-  console.log("URL:", `${getBaseUrl(account)}/register/customer`);
-  console.log("Payload:", JSON.stringify(payload));
-  console.log("============================");
-
-  try {
-    const response = await axios.post<GuperCustomer>(
-      `${getBaseUrl(account)}/register/customer`,
+try {
+    const response = await axios.post<{ person: GuperCustomer }>(
+      `${getBaseUrl(account)}/register/customer/findOrCreate`,
       payload,
       {
         headers: {
@@ -283,20 +277,198 @@ export const findOrCreateGuperCustomer = async (
     );
 
     console.log("✅ Customer:", response.data);
-    return response.data;                          // ✅ Success return
+    
+    
+    return response.data.person;
 
+} catch (error: unknown) {
+    if (axios.isAxiosError(error)) {
+      console.log("❌ Status:", error?.response?.status);
+      console.log("❌ Data:", JSON.stringify(error?.response?.data));
+      console.log("❌ URL:", error?.config?.url);
+   
+    }
+    throw new Error("Failed to find/create Guper customer", { cause: error });
+  }
+};
+
+
+
+// ─── Get Customer Balance ─────────────────────────────
+export const getCustomerBalance = async (
+  shop: string,
+  guperCustomerId: number
+): Promise<{
+  total: number;
+  available: number;
+  expired: number;
+  used: number;
+}> => {
+  const { accessToken, account } = await getFreshToken(shop);
+
+  try {
+    const response = await axios.get(
+      `${getBaseUrl(account)}/loyalty/report/rewardBalances/2020-01-01/2030-12-31/${guperCustomerId}`,
+      {
+        headers: {
+          "x-guper-authorization": accessToken,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    return {
+      total: response.data.total || 0,
+      available: response.data.available || 0,
+      expired: response.data.expired || 0,
+      used: response.data.used || 0,
+    };
   } catch (error: unknown) {
     if (axios.isAxiosError(error)) {
       console.log("❌ Status:", error?.response?.status);
       console.log("❌ Data:", JSON.stringify(error?.response?.data));
 
-      const message =
+      const errorMessage =                          
         error?.response?.data?.reason_phrase ||
         error?.response?.data?.message ||
         "Failed to find/create Guper customer";
 
-      throw new Error(message, { cause: error });  // ✅ cause added
+      throw new Error(errorMessage, { cause: error });  
     }
-    throw new Error("Failed to find/create Guper customer", { cause: error }); // ✅ cause added
+    throw new Error("Failed to find/create Guper customer", { cause: error });
+  }
+};
+
+// ─── Cancel Transaction (Refund) ──────────────────────
+export const cancelTransaction = async (
+  shop: string,
+  guperTID: string
+): Promise<{ success: boolean; data?: unknown; message?: string }> => {
+  const { accessToken, account } = await getFreshToken(shop);
+
+  try {
+    const response = await axios.post(
+      `${getBaseUrl(account)}/loyalty/cancelOrderByTransaction/${guperTID}`,
+      {},
+      {
+        headers: {
+          "x-guper-authorization": accessToken,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    return {
+      success: true,
+      data: response.data,
+    };
+  } catch (error: unknown) {
+    if (axios.isAxiosError(error)) {
+      return {
+        success: false,
+        message: error?.response?.data?.message || "Failed to cancel transaction",
+      };
+    }
+    return { success: false, message: "Failed to cancel transaction" };
+  }
+};
+
+// ─── Redeem Reserve ───────────────────────────────────
+export const redeemReserve = async (
+  shop: string,
+  confirmToken: string,
+  refId: string
+): Promise<{ success: boolean; data?: unknown; message?: string }> => {
+  const { accessToken, account } = await getFreshToken(shop);
+
+  try {
+    const response = await axios.post(
+      `${getBaseUrl(account)}/loyalty/redeem/reserve/${confirmToken}`,
+      { refId },
+      {
+        headers: {
+          "x-guper-authorization": accessToken,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    return {
+      success: true,
+      data: response.data,
+    };
+  } catch (error: unknown) {
+    if (axios.isAxiosError(error)) {
+      return {
+        success: false,
+        message: error?.response?.data?.message || "Failed to reserve redeem",
+      };
+    }
+    return { success: false, message: "Failed to reserve redeem" };
+  }
+};
+
+// ─── Redeem Confirm ───────────────────────────────────
+export const redeemConfirm = async (
+  shop: string,
+  confirmToken: string
+): Promise<{ success: boolean; data?: unknown; message?: string }> => {
+  const { accessToken, account } = await getFreshToken(shop);
+
+  try {
+    const response = await axios.get(
+      `${getBaseUrl(account)}/loyalty/redeem/reserve/${confirmToken}`,
+      {
+        headers: {
+          "x-guper-authorization": accessToken,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    return {
+      success: true,
+      data: response.data,
+    };
+  } catch (error: unknown) {
+    if (axios.isAxiosError(error)) {
+      return {
+        success: false,
+        message: error?.response?.data?.message || "Failed to confirm redeem",
+      };
+    }
+    return { success: false, message: "Failed to confirm redeem" };
+  }
+};
+
+
+
+// ─── Redeem Settle ────────────────────────────────────
+export const redeemSettle = async (
+  shop: string,
+  confirmToken: string
+): Promise<{ success: boolean; data?: unknown; message?: string }> => {
+  const { accessToken, account } = await getFreshToken(shop);
+
+  try {
+    const response = await axios.get(
+      `${getBaseUrl(account)}/loyalty/redeem/reserve/${confirmToken}`,
+      {
+        headers: {
+          "x-guper-authorization": accessToken,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    return { success: true, data: response.data };
+  } catch (error: unknown) {
+    if (axios.isAxiosError(error)) {
+      return {
+        success: false,
+        message: error?.response?.data?.message || "Failed to settle redeem",
+      };
+    }
+    return { success: false, message: "Failed to settle redeem" };
   }
 };

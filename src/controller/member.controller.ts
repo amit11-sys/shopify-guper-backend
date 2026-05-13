@@ -31,14 +31,18 @@ export const connectMember = asyncHandler(
       throw new ApiError(500, "Failed to find or create Guper customer");
     }
 
-    await saveCustomerMapping({
-      shop,
-      shopifyCustomerId,
-      identifierType,
-      identifierValue,
-      guperCustomerId: guperCustomer.id,
-    });
-
+ await saveCustomerMapping({
+  shop,
+  shopifyCustomerId,
+  identifierType,
+  identifierValue,
+  guperCustomerId: guperCustomer.id,
+  customerName,                              
+  customerEmail: identifierType === "email"
+    ? identifierValue
+    : undefined,                             
+  customerPhone,                             
+});
     return res.json({
       success: true,
       message: "GUPER account connected successfully",

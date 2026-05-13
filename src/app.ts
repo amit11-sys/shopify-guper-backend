@@ -5,7 +5,7 @@ import memberRoutes from "./routes/member.route";
 import merchantRoutes from "./routes/merchant.routes";
 import rewardRoutes from "./routes/reward.routes";       
 import { errorMiddleware } from "./middlewares/error.middleware";
-
+import loyaltyRoutes from "./routes/loyalty.routes";
 const app = express();
 
 app.use(cors());
@@ -24,7 +24,7 @@ app.use((req, res, next) => {
 app.use("/api/members", memberRoutes);
 app.use("/api/merchant", merchantRoutes);
 app.use("/api/reward", rewardRoutes);                     
-
+app.use("/api/loyalty", loyaltyRoutes);
 
 app.get("/health", (req, res) => {
   res.json({ success: true, message: "Server is healthy" });

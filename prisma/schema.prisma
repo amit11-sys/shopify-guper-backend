@@ -19,6 +19,7 @@ model MerchantCredential {
 
   orders         Order[]
   mappings       CustomerMapping[]
+  redemptions    Redemption[]
 
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
@@ -33,8 +34,12 @@ model CustomerMapping {
   guperCustomerId   Int
   identifierType    String
   identifierValue   String
+  customerName      String?
+  customerEmail     String?
+  customerPhone     String?
 
   merchant          MerchantCredential @relation(fields: [shop], references: [shop])
+  redemptions       Redemption[]
 
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
@@ -51,7 +56,7 @@ model Order {
   shopifyOrderId    String      @unique
   guperCustomerId   Int?
   guperTID          String?
-  confirmToken      String?     @unique    
+  confirmToken      String?     @unique
   customerEmail     String
   customerName      String?
   orderAmount       Int
@@ -67,9 +72,38 @@ model Order {
   @@map("orders")
 }
 
+model Redemption {
+  id              Int              @id @default(autoincrement())
+  shop            String
+  customerId      Int
+  guperCustomerId Int
+  pointsRedeemed  Int
+  discountCode    String?
+  discountAmount  Int              @default(0)
+  confirmToken    String?
+  status          RedemptionStatus @default(PENDING)
+
+  merchant        MerchantCredential @relation(fields: [shop], references: [shop])
+  customer        CustomerMapping    @relation(fields: [customerId], references: [id])
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([shop])
+  @@index([customerId])
+  @@map("redemptions")
+}
+
 enum OrderStatus {
   PENDING
   CONFIRMED
   FAILED
   REFUNDED
+}
+
+enum RedemptionStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  CANCELLED
 }
