@@ -11,6 +11,15 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// 🔥 ADD THIS
+app.use((req, res, next) => {
+  console.log("➡️ Incoming Request:");
+  console.log("METHOD:", req.method);
+  console.log("URL:", req.url);
+  console.log("HEADERS:", req.headers["content-type"]);
+  next();
+});
+
 
 app.use("/api/members", memberRoutes);
 app.use("/api/merchant", merchantRoutes);
