@@ -1,27 +1,35 @@
 import express from "express";
 import cors from "cors";
 
-// import webhookRoutes from "./routes/webhook.route";
 import memberRoutes from "./routes/member.route";
-import { errorMiddleware } from "./middlewares/error.middleware"
-
+import merchantRoutes from "./routes/merchant.routes";
+import rewardRoutes from "./routes/reward.routes";       
+import { errorMiddleware } from "./middlewares/error.middleware";
+import loyaltyRoutes from "./routes/loyalty.routes";
 const app = express();
 
 app.use(cors());
-
-// app.use(
-//   "/webhooks",
-//   express.raw({ type: "application/json" }),
-//   webhookRoutes
-// );
-
 app.use(express.json());
 
+// 🔥 ADD THIS
+app.use((req, res, next) => {
+  console.log("➡️ Incoming Request:");
+  console.log("METHOD:", req.method);
+  console.log("URL:", req.url);
+  console.log("HEADERS:", req.headers["content-type"]);
+  next();
+});
+
+
 app.use("/api/members", memberRoutes);
+app.use("/api/merchant", merchantRoutes);
+app.use("/api/reward", rewardRoutes);                     
+app.use("/api/loyalty", loyaltyRoutes);
 
 app.get("/health", (req, res) => {
   res.json({ success: true, message: "Server is healthy" });
 });
+
 
 app.use((req, res) => {
   res.status(404).json({

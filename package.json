@@ -1,11 +1,11 @@
 {
   "name": "shopify-guper-backend",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Shopify Guper Loyalty Integration",
+  "main": "dist/server.js",
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
-    "build": "tsc",
+    "build": "npx prisma generate && tsc",
     "start": "node dist/index.js",
     "lint": "eslint . --ext .ts",
     "format": "prettier --write ."
@@ -14,6 +14,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@prisma/client": "^6.19.3",
     "axios": "^1.15.0",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
@@ -26,6 +27,7 @@
     "@types/node": "^25.6.0",
     "globals": "^17.5.0",
     "prettier": "^3.8.2",
+    "prisma": "^6.19.3",
     "ts-node-dev": "^2.0.0",
     "typescript": "^6.0.2",
     "typescript-eslint": "^8.58.2"
